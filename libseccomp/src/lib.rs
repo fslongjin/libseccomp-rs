@@ -49,7 +49,7 @@ pub mod notify;
 use error::ErrorKind::*;
 use error::{Result, SeccompError};
 use libseccomp_sys::*;
-use std::ffi::{CStr, CString};
+use std::ffi::{c_void, CStr, CString};
 use std::fs::File;
 use std::os::unix::io::AsRawFd;
 use std::ptr::NonNull;
@@ -575,6 +575,24 @@ impl ScmpFilterContext {
 
         Ok(())
     }
+
+    /// load loads a filter context into the kernel with given prog_blks
+    ///
+    /// Returns an error if the filter context is invalid or the syscall failed.
+    pub fn load_with_prog(&self, prog_blks: Vec<u8>) -> Result<()> {
+        let ret = unsafe {
+            seccomp_load_with_prog(
+                self.ctx.as_ptr(),
+                prog_blks.as_ptr() as *const c_void,
+                prog_blks.len() as i32,
+            )
+        };
+        if ret < 0 {
+            return Err(SeccompError::new(Errno(ret)));
+        }
+
+        Ok(())
+    }
     /// get_filter_attr gets a raw filter attribute
     pub fn get_filter_attr(&self, attr: ScmpFilterAttr) -> Result<u32> {
         let mut attribute: u32 = 0;
@@ -618,7 +636,7 @@ impl ScmpFilterContext {
     ///
     /// Accepts file to write to (must be open for writing).
     /// Returns an error if writing to the file fails.
-    pub fn export_pfc(&self, fd: File) -> Result<()> {
+    pub fn export_pfc(&self, fd: &mut File) -> Result<()> {
         let ret = unsafe { seccomp_export_pfc(self.ctx.as_ptr(), fd.as_raw_fd()) };
         if ret < 0 {
             return Err(SeccompError::new(Errno(ret)));
@@ -632,7 +650,7 @@ impl ScmpFilterContext {
     ///
     /// Accepts file to write to (must be open for writing).
     /// Returns an error if writing to the file fails.
-    pub fn export_bpf(&self, fd: File) -> Result<()> {
+    pub fn export_bpf(&self, fd: &mut File) -> Result<()> {
         let ret = unsafe { seccomp_export_bpf(self.ctx.as_ptr(), fd.as_raw_fd()) };
         if ret < 0 {
             return Err(SeccompError::new(Errno(ret)));

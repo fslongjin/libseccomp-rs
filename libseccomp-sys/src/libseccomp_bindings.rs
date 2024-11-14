@@ -159,6 +159,14 @@ extern "C" {
     pub fn seccomp_load(ctx: scmp_filter_ctx) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn seccomp_load_with_prog(
+        ctx: scmp_filter_ctx,
+        blks: *const core::ffi::c_void,
+        blks_size: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+
+extern "C" {
     pub fn seccomp_attr_get(
         ctx: scmp_filter_ctx,
         attr: scmp_filter_attr,
